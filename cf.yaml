@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ImageUri:
+    Type: String
+  Identifier:
+    Type: String
+    Default: 'Test-ddb'
+Resources:
+  lambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref Identifier
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: !Ref Identifier
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource: !Join
+                  - ''
+                  - - 'arn:aws:logs:ap-south-1:'
+                    - !Ref AWS::AccountId
+                    - ':*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Join
+                  - ''
+                  - - 'arn:aws:logs:ap-south-1:'
+                    - !Ref AWS::AccountId
+                    - ':log-group:/aws/lambda/'
+                    - !Ref Identifier
+                    - ':*'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:CreateTable'
+                Resource: '*'
+  lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref Identifier
+      Code:
+        ImageUri: !Ref ImageUri
+      PackageType: Image
+      MemorySize: 512
+      Role: !GetAtt lambdaRole.Arn
+      Timeout: 15
